@@ -1,0 +1,45 @@
+name: AI Code Review Agent
+description: Reviews a pull request with Claude and posts line-level review comments
+branding:
+  icon: eye
+  color: orange
+
+inputs:
+  anthropic-api-key:
+    description: Anthropic API key
+    required: true
+  github-token:
+    description: Token with pull-requests:write permission
+    required: false
+    default: ${{ github.token }}
+  model:
+    description: Claude model id
+    required: false
+    default: claude-opus-5-5
+  effort:
+    description: Reasoning effort (low, medium, high, xhigh, max)
+    required: false
+    default: high
+  min-severity:
+    description: Minimum severity to report (critical, high, medium, low)
+    required: false
+    default: low
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install reviewer
+      shell: bash
+      run: pip install --quiet "${{ github.action_path }}"
+    - name: Review pull request
+      shell: bash
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        REVIEW_MODEL: ${{ inputs.model }}
+        REVIEW_EFFORT: ${{ inputs.effort }}
+        REVIEW_MIN_SEVERITY: ${{ inputs.min-severity }}
+      run: code-review-agent pr --repo "${{ github.repository }}" --pr "${{ github.event.pull_request.number }}"
